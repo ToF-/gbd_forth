@@ -108,14 +108,41 @@ CREATE CYCLES  MAXDRIVER CELLS ALLOT
         I SWAP DRIVER-STOP!
     LOOP DROP ;
 
+: .DRIVERS 
+    #DRIVERS @ 0 DO
+        I . ." ["
+        I CELLS DRIVERS + @ 
+        DUP FULL = IF DROP ." X" ELSE .SET THEN ." ]  "
+    LOOP ;
+
+: .STOPS
+    ." STOPS:"
+    #DRIVERS @ 0 DO
+        DUP I DRIVER-STOP .
+    LOOP CR DROP ;
+
+: .STOPS@
+    MAXSTOP 0 DO
+        I CELLS STOPS + @ DUP IF 
+            I . ." (" .SET ." )  " 
+        ELSE 
+            DROP 
+        THEN
+    LOOP CR ;
+
 : TRACK-COMPLETE-GOSSIP 
     INIT-DRIVERS
+    .DRIVERS CR
     0 
     BEGIN
+        DUP .
+        DUP .STOPS
         DUP MAXTIME < COMPLETE 0= AND WHILE
         CLEAR-STOPS
         DUP DRIVERS-STOPS!
+        .STOPS@
         UPDATE-ALL-DRIVERS
+        .DRIVERS CR
         1+
     REPEAT
     COMPLETE IF
