@@ -1,0 +1,40 @@
+: SPACE? ( c -- b )
+  DUP 32 = SWAP 9 = OR ;
+
+: SKIP-SPACE ( -- c )
+  BEGIN
+    KEY DUP SPACE? WHILE
+      DROP
+  REPEAT ;
+
+: GET-NUMBER? ( -- n,1 | c,0 )
+  SKIP-SPACE
+  DUP DIGIT? IF
+    0 SWAP
+    BEGIN
+      SWAP 10 * +
+      KEY DIGIT?
+    0= UNTIL
+    NIP -1
+  ELSE
+    0
+  THEN ;
+
+
+: GET-NUMBERS! ( addr -- n )
+  DUP BEGIN
+    GET-NUMBER? IF 
+      OVER ! CELL+
+      0
+    ELSE
+      SPACE? 0= 
+    THEN
+  UNTIL
+  SWAP - CELL / ;
+
+CREATE MY-NUMBERS 100 CELLS ALLOT
+
+PAGE
+MY-NUMBERS GET-NUMBERS! 
+MY-NUMBERS SWAP CELLS DUMP 
+BYE

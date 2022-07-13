@@ -1,4 +1,3 @@
-
 VARIABLE #DRIVERS
 
 : BIT>VALUE ( b -- n )
