@@ -15,3 +15,10 @@
 : UNION-SET ( A,B -- A v B )
   OR ;
 
+: SET-ITEMS ( set,max -- n1,n2,n3 )
+  0 DO 
+    DUP I IN-SET? IF 
+      I SWAP 
+    THEN 
+  LOOP DROP ;
+  

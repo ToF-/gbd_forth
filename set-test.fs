@@ -50,3 +50,13 @@ T{ ." union-set" CR
   DUP 42 IN-SET? ?TRUE
       16 IN-SET? ?FALSE
 }T
+
+T{ ." set-items" CR
+  17 EMPTY-SET IN-SET!
+  23 SWAP IN-SET!
+  42 EMPTY-SET IN-SET!
+   5 SWAP IN-SET!
+  UNION-SET
+  64 SET-ITEMS
+  42 ?S 23 ?S 17 ?S 5 ?S
+}T
