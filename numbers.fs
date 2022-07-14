@@ -1,31 +1,41 @@
-: ADDR++ ( addr,u -- addr+1,u-1 )
+: STR++ ( str -- str' )
   1- SWAP 1+ SWAP ;
 
-: MINUS? ( c -- b )
-  [CHAR] - = ;
+: IS-SPACE? ( c -- b )
+  DUP BL = SWAP 9 = OR ;
 
-: >SNUMBER ( d,addr,u -- d',addr',u' )
-  DUP 1 > IF
-    OVER C@ MINUS? IF ADDR++ -1 ELSE 0 THEN
-    >R >NUMBER 2SWAP R> IF DNEGATE THEN 
-    2SWAP
-  THEN ;
-  
-: SPACE? ( c -- b )
-  DUP 32 = SWAP 9 = OR ;
-
-: SKIP-SPACES ( addr,l -- addr',l' )
+: SKIP-SPACES ( str -- str' )
   BEGIN 
-    OVER C@ SPACE? OVER 0 > AND WHILE
-    ADDR++ 
+    OVER C@ IS-SPACE? 
+    OVER 0 > AND WHILE STR++ 
   REPEAT ;
 
-: NUMBERS ( addr,l,dest -- n )
-  DUP 2SWAP
+: SKIP-NON-SPACES ( str -- str' )
   BEGIN
-    SKIP-SPACES
-    DUP >R 0 0 2SWAP >SNUMBER DUP R> <> WHILE
-      2ROT 2ROT D>S OVER !
-      CELL+ 2SWAP
-  REPEAT
-  2DROP 2DROP SWAP - CELL / ;
+    OVER C@ IS-SPACE? 0=
+    OVER 0 > AND WHILE STR++
+  REPEAT ;
+
+: S>NEXT-NUMBER? ( str -- str',d,f )
+  SKIP-SPACES
+  DUP IF
+    2DUP SKIP-NON-SPACES    \ c-addr,n,c-addr',n'
+    DUP -ROT 2>R -          \ c-addr,n''  [c-addr',n']
+    S>NUMBER? 2R>           \ d,f,str'
+    ROT >R 2SWAP R>         \ str',d,f
+  ELSE
+    0 S>D 0
+  THEN ;
+
+: S>NUMBERS! ( str,addr -- n )
+  0 >R
+  BEGIN      \ str,addr
+    >R 
+    S>NEXT-NUMBER? R> SWAP WHILE  \ str',d,addr
+    DUP 2SWAP ROT 2!
+    CELL+ CELL+
+    R> 1+ >R
+  REPEAT     \ str,addr
+  DROP 2DROP 2DROP R> ;
+
+
