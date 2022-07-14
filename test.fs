@@ -1,4 +1,6 @@
 INCLUDE ffl/tst.fs
+REQUIRE set.fs
+REQUIRE numbers.fs
 REQUIRE gbd.fs
 
 T{ ." bit-value" CR
