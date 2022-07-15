@@ -1,4 +1,57 @@
-REQUIRE set-test.fs
-REQUIRE numbers-test.fs
-REQUIRE gossip-test.fs
+
+REQUIRE ffl/tst.fs
+REQUIRE gbd.fs
+
+0 CONSTANT Alfie
+1 CONSTANT Bernd
+2 CONSTANT Clara
+
+3 #DRIVERS !
+INIT-DRIVERS
+
+T{ ." driver    add-stop    stop" CR
+    42 Alfie DRIVER ADD-STOP
+    17 Alfie DRIVER ADD-STOP
+  4807 Bernd DRIVER ADD-STOP
+    17 Bernd DRIVER ADD-STOP
+    42 Clara DRIVER ADD-STOP
+    23 Clara DRIVER ADD-STOP
+    17 Clara DRIVER ADD-STOP
+  Alfie DRIVER 0 STOP-AT 42 ?S
+  Alfie DRIVER 1 STOP-AT 17 ?S
+  Alfie DRIVER 2 STOP-AT 42 ?S
+  Clara DRIVER 2 STOP-AT 17 ?S
+
+}T
+
+T{ ." gossip-bit   gossip" CR
+  Alfie DRIVER GOSSIP 1 ?S
+  Bernd DRIVER GOSSIP 2 ?S
+  Clara DRIVER GOSSIP 4 ?S
+}T
+
+T{ ." meet  stop  gossips! complete" CR
+  0 MEET!
+    17 STOP GOSSIP 0 ?S
+    23 STOP GOSSIP 0 ?S
+    42 STOP GOSSIP 5 ?S
+  4807 STOP GOSSIP 2 ?S
+  GOSSIPS!
+  Alfie DRIVER GOSSIP 5 ?S
+  Bernd DRIVER GOSSIP 2 ?S
+  Clara DRIVER GOSSIP 5 ?S
+  COMPLETE ?FALSE
+  1 MEET! GOSSIPS!
+  COMPLETE ?FALSE
+  2 MEET! GOSSIPS! 3 MEET! GOSSIPS! 4 MEET! GOSSIPS! 5 MEET! GOSSIPS!
+  17 STOP GOSSIP 7 ?S
+  COMPLETE ?TRUE
+}T
+
+T{ ." GBD" CR
+  Alfie DRIVER CELL+ @ 2 ?S
+  Bernd DRIVER CELL+ @ 2 ?S
+  Clara DRIVER CELL+ @ 3 ?S
+  GBD ?TRUE 5 ?S
+}T
 BYE
