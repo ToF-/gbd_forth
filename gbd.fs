@@ -9,6 +9,10 @@ VARIABLE #DRIVERS
 VARIABLE &DRIVER
 VARIABLE #STOPS
 
+\ increments a variable
+: 1+! ( addr -- )
+  1 SWAP +! ;
+
 \ address of a driver's gossip
 \ same as drivers address
 : DRIVER>GOSSIP ( driver -- driver.gossip )
@@ -33,15 +37,20 @@ VARIABLE #STOPS
 \ create a new stop for the current driver
 \ being created, keep track of # of stops
 : NEW-STOP ( stop -- )
- , 
- 1 #STOPS +! ;
+ , #STOPS 1+! ;
+
+\ return the next driver reference in
+\ the array of drivers
+: NEXT-DRIVER& ( -- driver& )
+  #DRIVERS @ CELLS DRIVERS + ;
 
 \ add the driver currently created to the
 \ array of drivers, incrementing #drivers
 : ADD-DRIVER
-  #STOPS @ &DRIVER @ DRIVER>#STOPS !
-  &DRIVER @ #DRIVERS @ CELLS DRIVERS + !
-  1 #DRIVERS +! ;
+  &DRIVER @ DUP
+  #STOPS @ SWAP DRIVER>#STOPS !
+  NEXT-DRIVER& !
+  #DRIVERS 1+! ;
 
 \ return the driver # index
 : NTH-DRIVER ( index -- addr )
