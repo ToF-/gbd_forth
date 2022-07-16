@@ -1,90 +1,124 @@
-VARIABLE #DRIVERS
-
-480   CONSTANT MAXTIME
 64    CONSTANT MAXDRIVER
 65536 CONSTANT MAXSTOP
-MAXTIME 2 + CELLS CONSTANT DRIVER-SIZE
+480   CONSTANT MAXTIME
 
-CREATE DRIVERS DRIVER-SIZE MAXDRIVER * ALLOT
-CREATE STOPS MAXSTOP CELLS ALLOT
+CREATE DRIVERS MAXDRIVER CELLS ALLOT
+CREATE STOPS   MAXSTOP   CELLS ALLOT
 
-: GOSSIP-BIT ( driver -- bit-value )
+VARIABLE #DRIVERS
+VARIABLE LAST-DRIVER
+VARIABLE #STOPS
+
+: GOSSIP-BIT ( d -- 2^d )
   1 SWAP LSHIFT ;
 
-: DRIVER ( n -- addr )
-  DRIVER-SIZE * DRIVERS + ;
+: DRIVER>GOSSIP ( driver -- driver.gossip )
+  ;
 
-: GOSSIP ( d-addr -- gossip )
-  @ ;
+: DRIVER>#STOPS ( driver -- driver.maxstop )
+  CELL+ ;
 
-: INIT-DRIVERS
-  #DRIVERS @ 0 DO
-    I GOSSIP-BIT I DRIVER ! 
-  LOOP ;
+: DRIVER>ROUTE  ( driver -- driver.stops )
+  CELL+ CELL+ ;
 
-: ADD-STOP ( stop,d-addr -- )
-  CELL+ 
-  DUP @ 1+ OVER OVER CELLS +
-  >R ROT R> !
-  SWAP ! ;
+: NEW-DRIVER ( -- )
+  HERE
+  #DRIVERS @ GOSSIP-BIT , 0 , 
+  LAST-DRIVER ! 
+  0 #STOPS ! ;
 
-: STOP-AT ( d-addr,minute -- stop )
-  OVER CELL+ @ MOD 1+ CELLS + CELL+ @ ;
+: NEXT-STOP ( driver -- driver.stops[driver.maxstop] )
+  DUP DRIVER>#STOPS @ CELLS
+  SWAP DRIVER>ROUTE + ;
 
-: INIT-STOPS
+: NEW-STOP ( stop -- )
+ , 
+ 1 #STOPS +! ;
+
+: ADD-DRIVER
+  LAST-DRIVER @
+  #STOPS @ OVER DRIVER>#STOPS !
+  #DRIVERS @ CELLS
+  DRIVERS + !
+  1 #DRIVERS +! ;
+
+: DRIVER-STOP ( driver,minute -- stop )
+  OVER DRIVER>#STOPS @ MOD CELLS
+  SWAP DRIVER>ROUTE + @ ;
+
+: DRIVER ( index -- addr )
+  CELLS DRIVERS + @ ;
+
+: CLEAR-STOPS
   STOPS MAXSTOP CELLS ERASE ;
 
-: STOP ( stop -- s-addr )
+: STOP ( index -- addr )
   CELLS STOPS + ;
 
-: OR! ( n,addr -- )
+: OR! ( n,addr -- addr|=n )
   DUP @ ROT OR SWAP ! ;
 
-: MEET! ( minute -- )
-  INIT-STOPS
+: DRIVERS-MEET! ( minute -- )
+  CLEAR-STOPS
   #DRIVERS @ 0 DO
-    I DRIVER OVER STOP-AT
-    STOP I GOSSIP-BIT SWAP OR!
+    I DRIVER OVER DRIVER-STOP STOP
+    I GOSSIP-BIT SWAP OR!
   LOOP DROP ;
 
-: COLLECT-GOSSIP ( driver-set -- gossip-set )
-  0 SWAP #DRIVERS @ 0 DO
-    DUP I GOSSIP-BIT AND IF
-      I DRIVER GOSSIP
-      ROT OR SWAP
-  THEN LOOP DROP ;
-
-: UPDATE-GOSSIP ( gossip,driver-set -- )
+: COLLECT-GOSSIP ( set -- gossip )
+  0 SWAP
   #DRIVERS @ 0 DO
-    DUP I GOSSIP-BIT AND IF
-      OVER I DRIVER OR!
-    THEN LOOP DROP DROP ;
-
-: GOSSIPS!
-  MAXSTOP 0 DO
-    I STOP GOSSIP ?DUP IF
-      DUP COLLECT-GOSSIP
-      SWAP UPDATE-GOSSIP
+    I GOSSIP-BIT OVER AND IF
+      I DRIVER DRIVER>GOSSIP @
+      ROT OR SWAP
     THEN
-  LOOP ;
+  LOOP DROP ;
+      
+: IN-SET? ( i,set -- f )
+  SWAP GOSSIP-BIT AND ;
+
+: UPDATE-GOSSIP! ( set,gossip -- )
+  #DRIVERS @ 0 DO
+    OVER I SWAP IN-SET? IF
+      I DRIVER DRIVER>GOSSIP
+      OVER SWAP !
+    THEN
+  LOOP DROP DROP ;
+  
+: DRIVERS-UPDATE! ( minute -- )
+  MAXSTOP 0 DO
+    I STOP @ ?DUP IF
+      DUP COLLECT-GOSSIP
+      UPDATE-GOSSIP!
+    THEN
+  LOOP DROP ;
 
 : FULL-GOSSIP ( n -- set )
   GOSSIP-BIT 1- ;
 
 : COMPLETE ( -- f )
-  #DRIVERS @ FULL-GOSSIP DUP
+  #DRIVERS @  DUP         \ n,n
+  FULL-GOSSIP DUP         \ n,f,f
+  ROT 0 DO
+    I DRIVER DRIVER>GOSSIP @
+    AND
+  LOOP
+  = ;
+
+: INIT-DRIVERS
   #DRIVERS @ 0 DO
-    I DRIVER GOSSIP AND
-  LOOP 
-  = ; 
-  
-: GBD ( -- )
-  0
-  INIT-DRIVERS 
-  MAXTIME 0 DO
-    I MEET! GOSSIPS!
-    COMPLETE IF
-      DROP I -1 LEAVE
-    THEN
+    I GOSSIP-BIT
+    I DRIVER DRIVER>GOSSIP !
   LOOP ;
+
+: GDB ( -- n )
+  INIT-DRIVERS
+  -1 MAXTIME 0 DO
+    I DRIVERS-MEET!
+    I DRIVERS-UPDATE!
+    COMPLETE IF
+      DROP I LEAVE
+    THEN
+  LOOP 1+ ;
+
 

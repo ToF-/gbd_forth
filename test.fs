@@ -1,57 +1,67 @@
+\  42 17 23 42
+\  42 23 42 17
+\  04 23 42 04 05
 
 REQUIRE ffl/tst.fs
 REQUIRE gbd.fs
 
-0 CONSTANT Alfie
-1 CONSTANT Bernd
-2 CONSTANT Clara
-
-3 #DRIVERS !
-INIT-DRIVERS
-
-T{ ." driver    add-stop    stop" CR
-    42 Alfie DRIVER ADD-STOP
-    17 Alfie DRIVER ADD-STOP
-  4807 Bernd DRIVER ADD-STOP
-    17 Bernd DRIVER ADD-STOP
-    42 Clara DRIVER ADD-STOP
-    23 Clara DRIVER ADD-STOP
-    17 Clara DRIVER ADD-STOP
-  Alfie DRIVER 0 STOP-AT 42 ?S
-  Alfie DRIVER 1 STOP-AT 17 ?S
-  Alfie DRIVER 2 STOP-AT 42 ?S
-  Clara DRIVER 2 STOP-AT 17 ?S
-
+T{ ." add-driver" CR
 }T
 
-T{ ." gossip-bit   gossip" CR
-  Alfie DRIVER GOSSIP 1 ?S
-  Bernd DRIVER GOSSIP 2 ?S
-  Clara DRIVER GOSSIP 4 ?S
+T{ ." new-driver new-stop add-driver" CR
+  #DRIVERS @ 0 ?S
+  CREATE Albert NEW-DRIVER 42 NEW-STOP 17 NEW-STOP 23 NEW-STOP 42 NEW-STOP ADD-DRIVER
+  #DRIVERS @ 1 ?S
 }T
 
-T{ ." meet  stop  gossips! complete" CR
-  0 MEET!
-    17 STOP GOSSIP 0 ?S
-    23 STOP GOSSIP 0 ?S
-    42 STOP GOSSIP 5 ?S
-  4807 STOP GOSSIP 2 ?S
-  GOSSIPS!
-  Alfie DRIVER GOSSIP 5 ?S
-  Bernd DRIVER GOSSIP 2 ?S
-  Clara DRIVER GOSSIP 5 ?S
-  COMPLETE ?FALSE
-  1 MEET! GOSSIPS!
-  COMPLETE ?FALSE
-  2 MEET! GOSSIPS! 3 MEET! GOSSIPS! 4 MEET! GOSSIPS! 5 MEET! GOSSIPS!
-  17 STOP GOSSIP 7 ?S
-  COMPLETE ?TRUE
+T{ ." driver-stop" CR
+  Albert 0 DRIVER-STOP 42 ?S
+  Albert 1 DRIVER-STOP 17 ?S
+  Albert 2 DRIVER-STOP 23 ?S
+  Albert 3 DRIVER-STOP 42 ?S
+  Albert 4 DRIVER-STOP 42 ?S
+  Albert 5 DRIVER-STOP 17 ?S
 }T
 
-T{ ." GBD" CR
-  Alfie DRIVER CELL+ @ 2 ?S
-  Bernd DRIVER CELL+ @ 2 ?S
-  Clara DRIVER CELL+ @ 3 ?S
-  GBD ?TRUE 5 ?S
+T{ ." #drivers" CR
+  CREATE Barnabe NEW-DRIVER
+  42 NEW-STOP 23 NEW-STOP 42 NEW-STOP 17 NEW-STOP
+  ADD-DRIVER
+  CREATE Clara NEW-DRIVER
+  04 NEW-STOP 23 NEW-STOP 42 NEW-STOP 04 NEW-STOP 05 NEW-STOP
+  ADD-DRIVER
+  #DRIVERS @ 3 ?S
 }T
+
+T{ ." driver driver>gossip driver>#stops" CR
+  0 DRIVER Albert = ?TRUE
+  1 DRIVER Barnabe = ?TRUE
+  2 DRIVER Clara = ?TRUE
+  Albert  DRIVER>GOSSIP @ 1 ?S
+  Barnabe DRIVER>GOSSIP @ 2 ?S
+  Clara   DRIVER>GOSSIP @ 4 ?S
+  Albert  DRIVER>#STOPS @ 4 ?S
+  Barnabe DRIVER>#STOPS @ 4 ?S
+  Clara   DRIVER>#STOPS @ 5 ?S
+}T
+
+T{ ." drivers-meet!" CR
+  0 DRIVERS-MEET!
+  42 STOP @  0 GOSSIP-BIT 1 GOSSIP-BIT OR ?S
+  04 STOP @  2 GOSSIP-BIT ?S
+}T
+
+T{ ." drivers-update!" CR
+  0 DRIVERS-UPDATE!
+  Albert DRIVER>GOSSIP @ 0 GOSSIP-BIT 1 GOSSIP-BIT OR ?S
+  Barnabe DRIVER>GOSSIP @ 0 GOSSIP-BIT 1 GOSSIP-BIT OR ?S
+  Clara  DRIVER>GOSSIP @ 2 GOSSIP-BIT ?S
+}T
+
+T{ ." gdb" CR
+  GDB 5 ?S
+}T
+
 BYE
+
+

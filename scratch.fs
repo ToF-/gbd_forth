@@ -1,0 +1,90 @@
+VARIABLE #DRIVERS
+
+480   CONSTANT MAXTIME
+64    CONSTANT MAXDRIVER
+65536 CONSTANT MAXSTOP
+MAXTIME 2 + CELLS CONSTANT DRIVER-SIZE
+
+CREATE DRIVERS DRIVER-SIZE MAXDRIVER * ALLOT
+CREATE STOPS MAXSTOP CELLS ALLOT
+
+: GOSSIP-BIT ( driver -- bit-value )
+  1 SWAP LSHIFT ;
+
+: DRIVER ( n -- addr )
+  DRIVER-SIZE * DRIVERS + ;
+
+: GOSSIP ( d-addr -- gossip )
+  @ ;
+
+: INIT-DRIVERS
+  #DRIVERS @ 0 DO
+    I GOSSIP-BIT I DRIVER ! 
+  LOOP ;
+
+: ADD-STOP ( stop,d-addr -- )
+  CELL+ 
+  DUP @ 1+ OVER OVER CELLS +
+  >R ROT R> !
+  SWAP ! ;
+
+: STOP-AT ( d-addr,minute -- stop )
+  OVER CELL+ @ MOD 1+ CELLS + CELL+ @ ;
+
+: INIT-STOPS
+  STOPS MAXSTOP CELLS ERASE ;
+
+: STOP ( stop -- s-addr )
+  CELLS STOPS + ;
+
+: OR! ( n,addr -- )
+  DUP @ ROT OR SWAP ! ;
+
+: MEET! ( minute -- )
+  INIT-STOPS
+  #DRIVERS @ 0 DO
+    I DRIVER OVER STOP-AT
+    STOP I GOSSIP-BIT SWAP OR!
+  LOOP DROP ;
+
+: COLLECT-GOSSIP ( driver-set -- gossip-set )
+  0 SWAP #DRIVERS @ 0 DO
+    DUP I GOSSIP-BIT AND IF
+      I DRIVER GOSSIP
+      ROT OR SWAP
+  THEN LOOP DROP ;
+
+: UPDATE-GOSSIP ( gossip,driver-set -- )
+  #DRIVERS @ 0 DO
+    DUP I GOSSIP-BIT AND IF
+      OVER I DRIVER OR!
+    THEN LOOP DROP DROP ;
+
+: GOSSIPS!
+  MAXSTOP 0 DO
+    I STOP GOSSIP ?DUP IF
+      DUP COLLECT-GOSSIP
+      SWAP UPDATE-GOSSIP
+    THEN
+  LOOP ;
+
+: FULL-GOSSIP ( n -- set )
+  GOSSIP-BIT 1- ;
+
+: COMPLETE ( -- f )
+  #DRIVERS @ FULL-GOSSIP DUP
+  #DRIVERS @ 0 DO
+    I DRIVER GOSSIP AND
+  LOOP 
+  = ; 
+  
+: GBD ( -- )
+  0
+  INIT-DRIVERS 
+  MAXTIME 0 DO
+    I MEET! GOSSIPS!
+    COMPLETE IF
+      DROP I -1 LEAVE
+    THEN
+  LOOP ;
+
