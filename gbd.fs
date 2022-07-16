@@ -15,55 +15,57 @@ VARIABLE #STOPS
 
 \ address of a driver's gossip
 \ same as drivers address
-: DRIVER>GOSSIP ( driver -- driver.gossip )
+: DRIVER>GOSSIP ( addr -- addr )
   ;
 
 \ address of a driver's number of stops
-: DRIVER>#STOPS ( driver -- driver.maxstop )
+: DRIVER>#STOPS ( addr -- addr' )
   CELL+ ;
 
 \ address of a driver's arrays of stops
-: DRIVER>ROUTE  ( driver -- driver.stops )
+: DRIVER>ROUTE  ( addr -- addr' )
   CELL+ CELL+ ;
 
 \ create a new driver in the dictionary
-\ save its address for later update
+\ leave its address for later update
 \ set its fields to zero
-: NEW-DRIVER ( -- )
-  HERE &DRIVER !
-  0 #STOPS !
-  0 , 0 , ;
+: [| ( -- addr )
+  HERE 0 , 0 , ;
 
-\ create a new stop for the current driver
-\ being created, keep track of # of stops
-: NEW-STOP ( stop -- )
- , #STOPS 1+! ;
+\ given initial address compute
+\ route length for the current driver
+\ being added
+: ADDED-ROUTE-LENGTH ( addr -- n )
+  HERE SWAP - CELL / 2 - ;
 
-\ return the next driver reference in
-\ the array of drivers
-: NEXT-DRIVER& ( -- driver& )
+\ return the next driver address
+\ to be assigned in the drivers arrary
+: NEXT-DRIVER& ( -- addr )
   #DRIVERS @ CELLS DRIVERS + ;
 
+\ add last stop to the current driver
+\ set the total # of stops
 \ add the driver currently created to the
-\ array of drivers, incrementing #drivers
-: ADD-DRIVER
-  &DRIVER @ DUP
-  #STOPS @ SWAP DRIVER>#STOPS !
+\ array of drivers, incrementing count
+: |] ( addr -- )
+  , DUP ADDED-ROUTE-LENGTH 
+  OVER DRIVER>#STOPS !
   NEXT-DRIVER& !
   #DRIVERS 1+! ;
 
 \ return the driver # index
-: NTH-DRIVER ( index -- addr )
+: NTH-DRIVER ( n -- addr )
   CELLS DRIVERS + @ ;
 
-\ return the stop for a driver at a given minute
-: DRIVER-STOP ( driver,minute -- stop )
+\ which stop # for a given driver and minute 
+: DRIVER-STOP ( addr,n -- n )
   OVER DRIVER>#STOPS @ MOD CELLS
   SWAP DRIVER>ROUTE + @ ;
 
 
-\ given a driver d, return gossip bit
-: GOSSIP-BIT ( d -- 2^d )
+\ given a driver d, return a bitset
+\ containing only a bit for d
+: GOSSIP-BIT ( n -- bs )
   1 SWAP LSHIFT ;
 
 \ initialize each driver with 
@@ -78,21 +80,21 @@ VARIABLE #STOPS
 : CLEAR-STOPS
   STOPS MAXSTOP CELLS ERASE ;
 
-\ return the stop # index
-: NTH-STOP ( index -- addr )
+\ address on stop#n
+: NTH-STOP ( n -- addr )
   CELLS STOPS + ;
 
 \ union of two gossip sets
-: ADD-GOSSIP ( set,set' -- set'' )
+: ADD-GOSSIP ( bs1,bs2 -- bs1|bs2 )
   OR ;
 
-\ add gossip at the given set address
-: ADD-GOSSIP! ( n,addr -- addr|=n )
+\ add (union) gossip at the given set address
+: ADD-GOSSIP! ( bs,addr -- )
   DUP @ ROT ADD-GOSSIP SWAP ! ;
 
 \ have the stops collect the drivers
 \ that are stopping at them at a given minute
-: DRIVERS-MEET! ( minute -- )
+: DRIVERS-MEET! ( n -- )
   CLEAR-STOPS
   #DRIVERS @ 0 DO
     I NTH-DRIVER OVER DRIVER-STOP NTH-STOP
@@ -101,7 +103,7 @@ VARIABLE #STOPS
 
 \ union of all the gossip bits
 \ coming for the drivers in the set
-: COLLECT-GOSSIP ( set -- gossip )
+: COLLECT-GOSSIP ( bs -- bs' )
   0 SWAP
   #DRIVERS @ 0 DO
     I GOSSIP-BIT OVER AND IF
@@ -110,13 +112,13 @@ VARIABLE #STOPS
     THEN
   LOOP DROP ;
       
-\ true if gossip bit i is in the set
-: IN-GOSSIP? ( i,set -- f )
+\ true if gossip bit n is in the bitset
+: IN-GOSSIP? ( n,bs -- f )
   SWAP GOSSIP-BIT AND ;
 
-\ store gossip into each driver
-\ present in the set
-: UPDATE-GOSSIP! ( set,gossip -- )
+\ store gossip bs1 into each driver
+\ present in the set bs2
+: UPDATE-GOSSIP! ( bs1,bs2 -- )
   #DRIVERS @ 0 DO
     OVER I SWAP IN-GOSSIP? IF
       I NTH-DRIVER DRIVER>GOSSIP
@@ -127,7 +129,7 @@ VARIABLE #STOPS
 \ for each stop where there's at least 
 \ 1 driver, collect the gossip at that
 \ stop then update the drivers
-: DRIVERS-UPDATE! ( minute -- )
+: DRIVERS-UPDATE! ( n -- )
   MAXSTOP 0 DO
     I NTH-STOP @ ?DUP IF
       DUP COLLECT-GOSSIP
@@ -135,8 +137,8 @@ VARIABLE #STOPS
     THEN
   LOOP DROP ;
 
-\ full bit set for size = n
-: FULL-GOSSIP ( n -- set )
+\ full bitset for size = n
+: FULL-GOSSIP ( n -- bs )
   GOSSIP-BIT 1- ;
 
 \ true if all drivers have full gossip
@@ -160,5 +162,4 @@ VARIABLE #STOPS
     I DRIVERS-UPDATE!
     COMPLETE? IF DROP I LEAVE THEN
   LOOP 1+ ;
-
 

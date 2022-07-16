@@ -10,7 +10,7 @@ T{ ." add-driver" CR
 
 T{ ." new-driver new-stop add-driver" CR
   #DRIVERS @ 0 ?S
-  CREATE Albert NEW-DRIVER 42 NEW-STOP 17 NEW-STOP 23 NEW-STOP 42 NEW-STOP ADD-DRIVER
+  CREATE Albert [| 42 , 17 , 23 , 42 |]
   #DRIVERS @ 1 ?S
 }T
 
@@ -24,12 +24,8 @@ T{ ." driver-stop" CR
 }T
 
 T{ ." #drivers" CR
-  CREATE Barnabe NEW-DRIVER
-  42 NEW-STOP 23 NEW-STOP 42 NEW-STOP 17 NEW-STOP
-  ADD-DRIVER
-  CREATE Clara NEW-DRIVER
-  04 NEW-STOP 23 NEW-STOP 42 NEW-STOP 04 NEW-STOP 05 NEW-STOP
-  ADD-DRIVER
+  CREATE Barnabe [| 42 , 23 , 42 , 17 |]
+  CREATE Clara   [| 04 , 23 , 42 , 04 , 05 |]
   #DRIVERS @ 3 ?S
 }T
 
