@@ -34,9 +34,10 @@ T{ ." #drivers" CR
 }T
 
 T{ ." driver driver>gossip driver>#stops" CR
-  0 DRIVER Albert = ?TRUE
-  1 DRIVER Barnabe = ?TRUE
-  2 DRIVER Clara = ?TRUE
+  0 NTH-DRIVER Albert = ?TRUE
+  1 NTH-DRIVER Barnabe = ?TRUE
+  2 NTH-DRIVER Clara = ?TRUE
+  INIT-DRIVERS
   Albert  DRIVER>GOSSIP @ 1 ?S
   Barnabe DRIVER>GOSSIP @ 2 ?S
   Clara   DRIVER>GOSSIP @ 4 ?S
@@ -47,8 +48,8 @@ T{ ." driver driver>gossip driver>#stops" CR
 
 T{ ." drivers-meet!" CR
   0 DRIVERS-MEET!
-  42 STOP @  0 GOSSIP-BIT 1 GOSSIP-BIT OR ?S
-  04 STOP @  2 GOSSIP-BIT ?S
+  42 NTH-STOP @  0 GOSSIP-BIT 1 GOSSIP-BIT OR ?S
+  04 NTH-STOP @  2 GOSSIP-BIT ?S
 }T
 
 T{ ." drivers-update!" CR
@@ -58,8 +59,8 @@ T{ ." drivers-update!" CR
   Clara  DRIVER>GOSSIP @ 2 GOSSIP-BIT ?S
 }T
 
-T{ ." gdb" CR
-  GDB 5 ?S
+T{ ." time-to-complete" CR
+  TIME-TO-COMPLETE 5 ?S
 }T
 
 BYE

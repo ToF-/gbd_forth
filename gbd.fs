@@ -6,14 +6,11 @@ CREATE DRIVERS MAXDRIVER CELLS ALLOT
 CREATE STOPS   MAXSTOP   CELLS ALLOT
 
 VARIABLE #DRIVERS
-VARIABLE LAST-DRIVER
+VARIABLE &DRIVER
 VARIABLE #STOPS
 
-\ given a driver d, return gossip bit
-: GOSSIP-BIT ( d -- 2^d )
-  1 SWAP LSHIFT ;
-
 \ address of a driver's gossip
+\ same as drivers address
 : DRIVER>GOSSIP ( driver -- driver.gossip )
   ;
 
@@ -26,14 +23,15 @@ VARIABLE #STOPS
   CELL+ CELL+ ;
 
 \ create a new driver in the dictionary
+\ save its address for later update
+\ set its fields to zero
 : NEW-DRIVER ( -- )
-  HERE
-  #DRIVERS @ GOSSIP-BIT , 0 , 
-  LAST-DRIVER ! 
-  0 #STOPS ! ;
+  HERE &DRIVER !
+  0 #STOPS !
+  0 , 0 , ;
 
 \ create a new stop for the current driver
-\ being created
+\ being created, keep track of # of stops
 : NEW-STOP ( stop -- )
  , 
  1 #STOPS +! ;
@@ -41,27 +39,38 @@ VARIABLE #STOPS
 \ add the driver currently created to the
 \ array of drivers, incrementing #drivers
 : ADD-DRIVER
-  LAST-DRIVER @
-  #STOPS @ OVER DRIVER>#STOPS !
-  #DRIVERS @ CELLS
-  DRIVERS + !
+  #STOPS @ &DRIVER @ DRIVER>#STOPS !
+  &DRIVER @ #DRIVERS @ CELLS DRIVERS + !
   1 #DRIVERS +! ;
+
+\ return the driver # index
+: NTH-DRIVER ( index -- addr )
+  CELLS DRIVERS + @ ;
 
 \ return the stop for a driver at a given minute
 : DRIVER-STOP ( driver,minute -- stop )
   OVER DRIVER>#STOPS @ MOD CELLS
   SWAP DRIVER>ROUTE + @ ;
 
-\ return the driver # index
-: DRIVER ( index -- addr )
-  CELLS DRIVERS + @ ;
+
+\ given a driver d, return gossip bit
+: GOSSIP-BIT ( d -- 2^d )
+  1 SWAP LSHIFT ;
+
+\ initialize each driver with 
+\ their bit of gossip
+: INIT-DRIVERS
+  #DRIVERS @ 0 DO
+    I GOSSIP-BIT
+    I NTH-DRIVER DRIVER>GOSSIP !
+  LOOP ;
 
 \ clear stops from the past minute meetings
 : CLEAR-STOPS
   STOPS MAXSTOP CELLS ERASE ;
 
 \ return the stop # index
-: STOP ( index -- addr )
+: NTH-STOP ( index -- addr )
   CELLS STOPS + ;
 
 \ union of two gossip sets
@@ -77,7 +86,7 @@ VARIABLE #STOPS
 : DRIVERS-MEET! ( minute -- )
   CLEAR-STOPS
   #DRIVERS @ 0 DO
-    I DRIVER OVER DRIVER-STOP STOP
+    I NTH-DRIVER OVER DRIVER-STOP NTH-STOP
     I GOSSIP-BIT SWAP ADD-GOSSIP!
   LOOP DROP ;
 
@@ -87,7 +96,7 @@ VARIABLE #STOPS
   0 SWAP
   #DRIVERS @ 0 DO
     I GOSSIP-BIT OVER AND IF
-      I DRIVER DRIVER>GOSSIP @
+      I NTH-DRIVER DRIVER>GOSSIP @
       ROT ADD-GOSSIP SWAP
     THEN
   LOOP DROP ;
@@ -101,7 +110,7 @@ VARIABLE #STOPS
 : UPDATE-GOSSIP! ( set,gossip -- )
   #DRIVERS @ 0 DO
     OVER I SWAP IN-GOSSIP? IF
-      I DRIVER DRIVER>GOSSIP
+      I NTH-DRIVER DRIVER>GOSSIP
       OVER SWAP !
     THEN
   LOOP DROP DROP ;
@@ -111,7 +120,7 @@ VARIABLE #STOPS
 \ stop then update the drivers
 : DRIVERS-UPDATE! ( minute -- )
   MAXSTOP 0 DO
-    I STOP @ ?DUP IF
+    I NTH-STOP @ ?DUP IF
       DUP COLLECT-GOSSIP
       UPDATE-GOSSIP!
     THEN
@@ -126,23 +135,15 @@ VARIABLE #STOPS
   #DRIVERS @  DUP         \ n,n
   FULL-GOSSIP DUP         \ n,f,f
   ROT 0 DO
-    I DRIVER DRIVER>GOSSIP @
+    I NTH-DRIVER DRIVER>GOSSIP @
     AND
   LOOP
   = ;
 
-\ initialize each driver with 
-\ their bit of gossip
-: INIT-DRIVERS
-  #DRIVERS @ 0 DO
-    I GOSSIP-BIT
-    I DRIVER DRIVER>GOSSIP !
-  LOOP ;
-
 \ compute the first minute when all
 \ drivers have shared their gossip
 \ or 0 if never
-: GDB ( -- n )
+: TIME-TO-COMPLETE ( -- n )
   INIT-DRIVERS
   -1 
   MAXTIME 0 DO
